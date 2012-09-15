@@ -15,6 +15,7 @@ using System.Runtime.InteropServices;
 using CRMmanager;
 using Microsoft.Win32;
 
+
 namespace Client
 {
 	/// <summary>
@@ -27,6 +28,22 @@ namespace Client
         public static extern IntPtr GetForegroundWindow();
         [DllImport("user32.dll")]
         public static extern Int32 GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+        //초기 설정 관련 demo vs. product
+        private bool IsProductMode = false;
+        private string AppName = "";
+        private string AppConfigName = "";
+        private string AppRegName = "";
+        private string AppConfigFullPath = "";
+        private string XmlConfigFullPath = "";
+        private string XmlConfigOrgFullPath = "";
+
+        private string UpdateSourceFullPath = "";
+        private string UpdateTargetFullPath = "";
+        private string UpdateSourceDir = "";
+        private string UpdateTargetDir = "";
+        private string UpdateShortDir = "";
+        private string MsgrTitle = "";
 
         private string[] news = new string[10];
         private DirectoryInfo di = new DirectoryInfo(@"C:\MiniCTI");
@@ -64,6 +81,7 @@ namespace Client
         private bool isNoticeListAll = false;
         private bool noActive = false;
         private bool nopop = false;
+        private bool nopop_outbound = false; //발신시 팝업중지
         private bool isHide = false;
         private bool firstCall = false;
         public XmlDocument xmldoc = new XmlDocument();
@@ -275,6 +293,8 @@ namespace Client
         private Panel InfoBar;
         CRMmanager.FRM_MAIN crm_main;
 
+        const string MEMO_HEADER = "m|";
+
         public Client_Form()
         {
             try
@@ -316,6 +336,10 @@ namespace Client
             screenWidth = Screen.PrimaryScreen.WorkingArea.Width;
             screenHeight = Screen.PrimaryScreen.WorkingArea.Height;
             this.SetBounds(screenWidth - this.Width, 0, this.Width, this.Height);
+
+            checkProductMode();
+            this.Text = MsgrTitle;
+
             readconfig();
             LogFileCheck();
             Thread thread = new Thread(new ThreadStart(VersionCheck));
@@ -332,8 +356,49 @@ namespace Client
             
         }
 
-       
-        
+        private void checkProductMode()
+        {
+            string temp = Process.GetCurrentProcess().ProcessName;
+            if (temp.IndexOf('.') < 0)
+            {
+                AppName = temp;
+            }
+            else
+            {
+                AppName = temp.Substring(0, temp.IndexOf('.'));
+            }
+
+            IsProductMode = !(AppName.ToUpper().Contains(CommonDef.STR_DEMO));
+
+            AppConfigName = string.Format(CommonDef.APP_CONFIG_NAME, temp);
+            AppConfigFullPath = Application.StartupPath + CommonDef.PATH_DELIM + AppConfigName;
+            if (IsProductMode)
+            {
+                AppRegName = CommonDef.REG_APP_NAME;
+                UpdateShortDir = CommonDef.UPDATE_DIR_PROD;
+                UpdateTargetDir = CommonDef.WORK_DIR + CommonDef.PATH_DELIM + CommonDef.UPDATE_DIR_PROD;
+                UpdateSourceDir = Application.StartupPath + CommonDef.PATH_DELIM +CommonDef.UPDATE_DIR_PROD;
+                XmlConfigFullPath = CommonDef.WORK_DIR + CommonDef.PATH_DELIM + CommonDef.CONFIG_DIR + CommonDef.PATH_DELIM + CommonDef.XML_CONFIG_PROD;
+                XmlConfigOrgFullPath = Application.StartupPath + CommonDef.PATH_DELIM + CommonDef.XML_CONFIG_PROD;
+                UpdateSourceFullPath = UpdateSourceDir + CommonDef.PATH_DELIM + CommonDef.UPDATE_EXE;
+                UpdateTargetFullPath = UpdateTargetDir + CommonDef.PATH_DELIM + CommonDef.UPDATE_EXE;
+                MsgrTitle = CommonDef.MSGR_TITLE_PROD;
+            }
+            else
+            {
+                AppRegName = CommonDef.REG_APP_NAME_DEMO;
+                UpdateShortDir = CommonDef.UPDATE_DIR_DEMO;
+                UpdateTargetDir = CommonDef.WORK_DIR + CommonDef.PATH_DELIM + CommonDef.UPDATE_DIR_DEMO;
+                UpdateSourceDir = Application.StartupPath + CommonDef.PATH_DELIM + CommonDef.UPDATE_DIR_DEMO;
+                XmlConfigFullPath = CommonDef.WORK_DIR + CommonDef.PATH_DELIM + CommonDef.CONFIG_DIR + CommonDef.PATH_DELIM + CommonDef.XML_CONFIG_DEMO;
+                XmlConfigOrgFullPath = Application.StartupPath + CommonDef.PATH_DELIM + CommonDef.XML_CONFIG_DEMO;
+                UpdateSourceFullPath = UpdateSourceDir + CommonDef.PATH_DELIM + CommonDef.UPDATE_EXE;
+                UpdateTargetFullPath = UpdateTargetDir + CommonDef.PATH_DELIM + CommonDef.UPDATE_EXE;
+                MsgrTitle = CommonDef.MSGR_TITLE_DEMO;
+            }
+            logWrite("Product Mode[" + AppName + "][" + IsProductMode + "]");
+
+        }
 
         private void makeTransferNotiArea()
         {
@@ -390,18 +455,33 @@ namespace Client
         {
             try
             {
-                FtpHost = System.Configuration.ConfigurationSettings.AppSettings["FtpHost"].ToString();
-                tempFolder = System.Configuration.ConfigurationSettings.AppSettings["FtpLocalFolder"].ToString();
-                passwd = System.Configuration.ConfigurationSettings.AppSettings["FtpPass"].ToString();
-                FtpPort = int.Parse(System.Configuration.ConfigurationSettings.AppSettings["FtpPort"].ToString());
-                FtpUsername = System.Configuration.ConfigurationSettings.AppSettings["FtpUserName"].ToString();
-                updaterDir = System.Configuration.ConfigurationSettings.AppSettings["UpdaterDir"].ToString();
-                version = System.Configuration.ConfigurationSettings.AppSettings["FtpVersion"].ToString();
+                //FtpHost = System.Configuration.ConfigurationSettings.AppSettings["FtpHost"].ToString();
+                //tempFolder = System.Configuration.ConfigurationSettings.AppSettings["FtpLocalFolder"].ToString();
+                //passwd = System.Configuration.ConfigurationSettings.AppSettings["FtpPass"].ToString();
+                //FtpPort = int.Parse(System.Configuration.ConfigurationSettings.AppSettings["FtpPort"].ToString());
+                //FtpUsername = System.Configuration.ConfigurationSettings.AppSettings["FtpUserName"].ToString();
+                //updaterDir = System.Configuration.ConfigurationSettings.AppSettings["UpdaterDir"].ToString();
+                //version = System.Configuration.ConfigurationSettings.AppSettings["FtpVersion"].ToString();
                 top = System.Configuration.ConfigurationSettings.AppSettings["topmost"].ToString();
-                string temp = System.Configuration.ConfigurationSettings.AppSettings["nopop"].ToString();
-                if (temp.Equals("1"))
+                string sNopop = System.Configuration.ConfigurationSettings.AppSettings["nopop"].ToString();
+
+                FtpHost = CommonDef.FTP_HOST;
+                tempFolder = CommonDef.FTP_LOCAL_DIR;
+                passwd = CommonDef.FTP_PASS;
+                FtpPort = CommonDef.FTP_PORT;
+                FtpUsername = CommonDef.FTP_USERID;
+                updaterDir = UpdateTargetFullPath; //System.Configuration.ConfigurationSettings.AppSettings["UpdaterDir"].ToString();
+                version = CommonDef.FTP_VERSION;
+                
+                if (sNopop.Equals("1"))
                 {
                     this.nopop = true;
+                }
+
+                string sNopop_outbound = System.Configuration.ConfigurationSettings.AppSettings["nopop_outbound"].ToString();
+                if (sNopop_outbound.Equals("1"))
+                {
+                    this.nopop_outbound = true;
                 }
 
                 if (top.Equals("1"))
@@ -434,7 +514,7 @@ namespace Client
                     StreamReader sr = new StreamReader(st);
                     SVRver = sr.ReadLine();
                 }
-
+                logWrite("VersionCheck FtpHost = " + FtpHost);
                 logWrite("Server Version = " + SVRver);
                 logWrite("Client Version = " + version);
 
@@ -482,6 +562,10 @@ namespace Client
         {
             try
             {
+                if (connected == true)
+                {
+                    LogOut();
+                }
                 this.notifyIcon.Visible = false;
                 logWrite("Update Start!!" + "  " + DateTime.Now.ToShortTimeString());
                 System.Diagnostics.Process.Start(updaterDir);
@@ -2896,12 +2980,12 @@ namespace Client
 
                         stringDele changeProgressStyle = new stringDele(chageProgressbar);
                         Invoke(changeProgressStyle, "로딩중");
-                        setCRM_DB_HOST("c:\\MiniCTI\\config\\MiniCTI_config_demo.xml", serverIP);
-                        setCRM_DB_HOST(Application.StartupPath + "\\MiniCTI_config_demo.xml", serverIP);
+                        setCRM_DB_HOST(XmlConfigOrgFullPath, serverIP);//Application.StartupPath + "\\MiniCTI_config_demo.xml", serverIP);
+                        setCRM_DB_HOST(XmlConfigFullPath, serverIP);//"c:\\MiniCTI\\config\\MiniCTI_config_demo.xml", serverIP);
 
-                        FileInfo temp = new FileInfo(Application.StartupPath + "\\MiniCTI_config_demo.xml");
+                        FileInfo temp = new FileInfo(XmlConfigOrgFullPath);//Application.StartupPath + "\\MiniCTI_config_demo.xml");
 
-                        FileInfo tempfileinfo = new FileInfo("C:\\MiniCTI\\config\\MiniCTI_config_demo.xml");
+                        FileInfo tempfileinfo = new FileInfo(XmlConfigFullPath);//"C:\\MiniCTI\\config\\MiniCTI_config_demo.xml");
                         if (!tempfileinfo.Exists)
                         {
                             logWrite("MiniCTI config 파일 없음");
@@ -3299,8 +3383,11 @@ namespace Client
                         break;
 
                     case "Dial": //다이얼시 고객정보 팝업(Dial|ani)
-                        doublestringDele dialdele = new doublestringDele(Answer);
-                        Invoke(dialdele, new object[] { tempMsg[1], "2" });
+                        if (this.nopop_outbound == false)
+                        {
+                            doublestringDele dialdele = new doublestringDele(Answer);
+                            Invoke(dialdele, new object[] { tempMsg[1], "2" });
+                        }
                         break;
 
                     case "Answer": //offhook시 고객정보 팝업(Answer|ani|type)
@@ -5734,12 +5821,16 @@ namespace Client
             string info = "8|" + this.myid + "|" + this.mypass + "|" + this.extension + "|" + local.ToString();
             SendMsg(info, server);
 
-            setConfigXml(Application.StartupPath + "\\WDMsg_Client_Demo.exe.config", "id", this.myid);
-            setConfigXml(Application.StartupPath + "\\WDMsg_Client_Demo.exe.config", "extension", this.extension);
+            //setConfigXml(Application.StartupPath + "\\WDMsg_Client_Demo.exe.config", "id", this.myid);
+            setConfigXml(AppConfigFullPath, "id", this.myid);
+            //setConfigXml(Application.StartupPath + "\\WDMsg_Client_Demo.exe.config", "extension", this.extension);
+            setConfigXml(AppConfigFullPath, "extension", this.extension);
             if (cbx_pass_save.Checked == true)
             {
-                setConfigXml(Application.StartupPath + "\\WDMsg_Client_Demo.exe.config", "pass", this.mypass);
-                setConfigXml(Application.StartupPath + "\\WDMsg_Client_Demo.exe.config", "save_pass", "1");
+                //setConfigXml(Application.StartupPath + "\\WDMsg_Client_Demo.exe.config", "pass", this.mypass);
+                setConfigXml(AppConfigFullPath, "pass", this.mypass);
+                //setConfigXml(Application.StartupPath + "\\WDMsg_Client_Demo.exe.config", "save_pass", "1");
+                setConfigXml(AppConfigFullPath, "save_pass", "1");
             }
         }
 
@@ -6707,8 +6798,10 @@ namespace Client
             {
                 string c_color = color.Name;
                 string c_font = font.ToHfont().ToInt32().ToString();
-                setConfigXml("WDMsg_Client_Demo.exe.config", "custom_color", c_color);
-                setConfigXml("WDMsg_Client_Demo.exe.config", "custom_font", c_font);
+                //setConfigXml("WDMsg_Client_Demo.exe.config", "custom_color", c_color);
+                setConfigXml(AppConfigFullPath, "custom_color", c_color);
+                //setConfigXml("WDMsg_Client_Demo.exe.config", "custom_font", c_font);
+                setConfigXml(AppConfigFullPath, "custom_font", c_font);
             }
             catch (Exception ex)
             {
@@ -7820,7 +7913,8 @@ namespace Client
             {
                 MemoForm memoForm = new MemoForm();
                 memoForm.Text = tempMemo[1] + "님의 쪽지";
-                memoForm.MemoCont.Text = tempMemo[3];
+                //memoForm.MemoCont.Text = tempMemo[3];  
+                memoForm.MemoCont.Lines = tempMemo[3].Split(new string[] {Environment.NewLine}, StringSplitOptions.None); //줄바꿈 지원 2012.9.1
                 memoForm.senderid.Text = tempMemo[2];
                 memoForm.MemoRe.KeyUp += new KeyEventHandler(SendMemo);
                 memoForm.Memobtn.MouseClick += new MouseEventHandler(Memobtn_Click);
@@ -9304,20 +9398,25 @@ namespace Client
             {
                 if (configform.cbx_autostart.CheckState == CheckState.Checked)
                 {
-                    setConfigXml(Application.StartupPath + "\\WDMsg_Client_Demo.exe.config", "autostart", "1");
+                    //setConfigXml(Application.StartupPath + "\\WDMsg_Client_Demo.exe.config", "autostart", "1");
+                    setConfigXml(AppConfigFullPath, "autostart", "1");
                     System.Configuration.ConfigurationSettings.AppSettings.Set("autostart", "1");
-                    RegistryKey rkApp = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
-                    rkApp.SetValue("WeDo", Application.ExecutablePath.ToString());
+                    //RegistryKey rkApp = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
+                    RegistryKey rkApp = Registry.CurrentUser.OpenSubKey(CommonDef.REG_CUR_USR_RUN, true);
+                    //rkApp.SetValue("WeDo", Application.ExecutablePath.ToString());
+                    rkApp.SetValue(AppRegName, Application.ExecutablePath.ToString());
                     rkApp.Close();
                 }
                 else
                 {
-                    setConfigXml(Application.StartupPath + "\\WDMsg_Client_Demo.exe.config", "autostart", "0");
+                    //setConfigXml(Application.StartupPath + "\\WDMsg_Client_Demo.exe.config", "autostart", "0");
+                    setConfigXml(AppConfigFullPath, "autostart", "0");
                     System.Configuration.ConfigurationSettings.AppSettings.Set("autostart", "0");
-                    RegistryKey rkApp = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
-                    if (rkApp.GetValue("WeDo") != null)
+                    //RegistryKey rkApp = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
+                    RegistryKey rkApp = Registry.CurrentUser.OpenSubKey(CommonDef.REG_CUR_USR_RUN, true);
+                    if (rkApp.GetValue(AppRegName) != null)
                     {
-                        rkApp.DeleteValue("WeDo");
+                        rkApp.DeleteValue(AppRegName);
                     }
                     rkApp.Close();
                 }
@@ -9325,27 +9424,46 @@ namespace Client
                 if (configform.cbx_topmost.CheckState == CheckState.Checked)
                 {
                     this.TopMost = true;
-                    setConfigXml(Application.StartupPath + "\\WDMsg_Client_Demo.exe.config", "topmost", "1");
+                    //setConfigXml(Application.StartupPath + "\\WDMsg_Client_Demo.exe.config", "topmost", "1");
+                    setConfigXml(AppConfigFullPath, "topmost", "1");
                     System.Configuration.ConfigurationSettings.AppSettings.Set("topmost", "1");
                 }
                 else
                 {
                     this.TopMost = false;
-                    setConfigXml(Application.StartupPath + "\\WDMsg_Client_Demo.exe.config", "topmost", "0");
+                    //setConfigXml(Application.StartupPath + "\\WDMsg_Client_Demo.exe.config", "topmost", "0");
+                    setConfigXml(AppConfigFullPath, "topmost", "0");
                     System.Configuration.ConfigurationSettings.AppSettings.Set("topmost", "0");
                 }
 
                 if (configform.cbx_nopop.CheckState == CheckState.Checked)
                 {
                     this.nopop = true;
-                    setConfigXml(Application.StartupPath + "\\WDMsg_Client_Demo.exe.config", "nopop", "1");
+                    //setConfigXml(Application.StartupPath + "\\WDMsg_Client_Demo.exe.config", "nopop", "1");
+                    setConfigXml(AppConfigFullPath, "nopop", "1");
                     System.Configuration.ConfigurationSettings.AppSettings.Set("nopop", "1");
                 }
                 else
                 {
                     this.nopop = false;
-                    setConfigXml(Application.StartupPath + "\\WDMsg_Client_Demo.exe.config", "nopop", "0");
+                    //setConfigXml(Application.StartupPath + "\\WDMsg_Client_Demo.exe.config", "nopop", "0");
+                    setConfigXml(AppConfigFullPath, "nopop", "0");
                     System.Configuration.ConfigurationSettings.AppSettings.Set("nopop", "0");
+                }
+
+                if (configform.cbx_nopop_outbound.CheckState == CheckState.Checked)
+                {
+                    this.nopop_outbound = true;
+                    //setConfigXml(Application.StartupPath + "\\WDMsg_Client_Demo.exe.config", "nopop_outbound", "1");
+                    setConfigXml(AppConfigFullPath, "nopop_outbound", "1");
+                    System.Configuration.ConfigurationSettings.AppSettings.Set("nopop_outbound", "1");
+                }
+                else
+                {
+                    this.nopop_outbound = false;
+                    //setConfigXml(Application.StartupPath + "\\WDMsg_Client_Demo.exe.config", "nopop_outbound", "0");
+                    setConfigXml(AppConfigFullPath, "nopop_outbound", "0");
+                    System.Configuration.ConfigurationSettings.AppSettings.Set("nopop_outbound", "0");
                 }
 
                 configform.Close();
@@ -9395,9 +9513,12 @@ namespace Client
                 {
                     tempip = "localhost";
                 }
-                setConfigXml(Application.StartupPath + "\\WDMsg_Client_Demo.exe.config", "serverip", tempip);
-                setCRM_DB_HOST("c:\\MiniCTI\\config\\MiniCTI_config_demo.xml", tempip);
-                setCRM_DB_HOST(Application.StartupPath + "\\MiniCTI_config_demo.xml", tempip);
+                //setConfigXml(Application.StartupPath + "\\WDMsg_Client_Demo.exe.config", "serverip", tempip);
+                setConfigXml(AppConfigFullPath, "serverip", tempip);
+                //setCRM_DB_HOST("c:\\MiniCTI\\config\\MiniCTI_config_demo.xml", tempip);
+                setCRM_DB_HOST(XmlConfigFullPath, tempip);
+                //setCRM_DB_HOST(Application.StartupPath + "\\MiniCTI_config_demo.xml", tempip);
+                setCRM_DB_HOST(XmlConfigOrgFullPath, tempip);
                 serverIP = tempip;
                 System.Configuration.ConfigurationSettings.AppSettings.Set("serverip", serverIP);
 
@@ -9458,20 +9579,20 @@ namespace Client
                     configDir.Create();
                 }
 
-                DirectoryInfo updaterDir = new DirectoryInfo(di.FullName + "\\WeDoUpdater_Demo");
+                DirectoryInfo updaterDir = new DirectoryInfo(di.FullName + CommonDef.PATH_DELIM + UpdateShortDir);
                 if (!updaterDir.Exists)
                 {
                     updaterDir.Create();
                 }
 
                 FileInfo[] files = null;
-                di = new DirectoryInfo(Application.StartupPath + "\\WeDoUpdater_Demo");
+                di = new DirectoryInfo(UpdateSourceDir);//Application.StartupPath + "\\WeDoUpdater_Demo");
                 if (di.Exists)
                 {
                     files = di.GetFiles();
                     foreach (FileInfo fi in files)
                     {
-                        FileInfo finfo = new FileInfo("C:\\MiniCTI\\WeDoUpdater_Demo\\" + fi.Name);
+                        FileInfo finfo = new FileInfo(UpdateTargetDir + CommonDef.PATH_DELIM + fi.Name);//"C:\\MiniCTI\\WeDoUpdater_Demo\\" + fi.Name);
 
                         fi.CopyTo(finfo.FullName, true);
 
@@ -9491,9 +9612,9 @@ namespace Client
                     logWrite(date + ".txt 파일 생성");
                 }
 
-                FileInfo temp = new FileInfo(Application.StartupPath + "\\MiniCTI_config_demo.xml");
+                FileInfo temp = new FileInfo(XmlConfigOrgFullPath);//Application.StartupPath + "\\MiniCTI_config_demo.xml");
 
-                FileInfo CRMCFGfileinfo = new FileInfo("C:\\MiniCTI\\config\\MiniCTI_config_demo.xml");
+                FileInfo CRMCFGfileinfo = new FileInfo(XmlConfigFullPath);//"C:\\MiniCTI\\config\\MiniCTI_config_demo.xml");
                 if (!CRMCFGfileinfo.Exists)
                 {
                     logWrite("MiniCTI config 파일 없음");
@@ -10570,9 +10691,24 @@ namespace Client
                     }
                     memolistform.listView.SelectedIndexChanged += new EventHandler(memolistView_Click);
                     memolistform.MouseClick += new MouseEventHandler(btn_del_Click_forMemo);
+
+                    string source = "";
                     foreach (object obj in list)
                     {
-                        string source = (string)obj;  //item(m|name|id|message|수신사id|time)
+                        if (((string)obj).Length > 2 && ((string)obj).Substring(0, 2) == MEMO_HEADER)
+                        {
+                            source = (string)obj;  //item(m|name|id|message|수신사id|time)
+                        }
+                        else
+                        {
+                            source += Environment.NewLine +(string)obj;  //item(m|name|id|message|수신사id|time)
+                        }
+                        if (source.Split('|').Length < 6) continue; 
+
+                        logWrite("memo[" + source + "]");
+                        
+                        //> 2 && source.Substring(0,2) == MEMO_HEADER ) 
+
                         if (source.Length != 0)
                         {
                             string[] subitems = source.Split('|');
@@ -10581,6 +10717,7 @@ namespace Client
                             item.SubItems.Add(subitems[3]);
                             item.Tag = source;
                         }
+                        source = "";
                     }
                     memolistform.Show();
                 }
@@ -11382,6 +11519,11 @@ namespace Client
                     configform.cbx_nopop.Checked = true;
                 }
 
+                if (nopop_outbound == true)
+                {
+                    configform.cbx_nopop_outbound.Checked = true;
+                }
+
                 configform.Show();
 
             }
@@ -11452,7 +11594,8 @@ namespace Client
             try
             {
                 System.Configuration.ConfigurationSettings.AppSettings.Set("save_pass", "0");
-                setConfigXml(Application.StartupPath + "\\WDMsg_Client_Demo.exe.config", "save_pass", "0");
+                //setConfigXml(Application.StartupPath + "\\WDMsg_Client_Demo.exe.config", "save_pass", "0");
+                setConfigXml(AppConfigFullPath, "save_pass", "0");
             }
             catch (Exception ex)
             {
