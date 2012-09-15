@@ -22,13 +22,13 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		VSStyle = OSX (Panther)_custom.vssf
-		VSTargetControls = FormsAndControls
-		VSToolStripStyle = Mixed
-		VSTextShadow = True
-		VSSkinFlatStyles = True
-		VSSkinToggleButtons = True
-		VSUseSystemFonts = False
 		VSCustomBkgrdPaint = False
+		VSUseSystemFonts = False
+		VSSkinToggleButtons = True
+		VSSkinFlatStyles = True
+		VSTextShadow = True
+		VSToolStripStyle = Mixed
+		VSTargetControls = FormsAndControls
+		VSStyle = OSX (Panther)_custom.vssf
 	EndGlobalSection
 EndGlobal
