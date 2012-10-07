@@ -383,6 +383,8 @@ namespace Client
                 UpdateSourceFullPath = UpdateSourceDir + CommonDef.PATH_DELIM + CommonDef.UPDATE_EXE;
                 UpdateTargetFullPath = UpdateTargetDir + CommonDef.PATH_DELIM + CommonDef.UPDATE_EXE;
                 MsgrTitle = CommonDef.MSGR_TITLE_PROD;
+                FtpHost = CommonDef.FTP_HOST_PROD; 
+                version = CommonDef.FTP_VERSION_PROD;
             }
             else
             {
@@ -395,6 +397,8 @@ namespace Client
                 UpdateSourceFullPath = UpdateSourceDir + CommonDef.PATH_DELIM + CommonDef.UPDATE_EXE;
                 UpdateTargetFullPath = UpdateTargetDir + CommonDef.PATH_DELIM + CommonDef.UPDATE_EXE;
                 MsgrTitle = CommonDef.MSGR_TITLE_DEMO;
+                FtpHost = CommonDef.FTP_HOST_DEMO;
+                version = CommonDef.FTP_VERSION_DEMO;
             }
             logWrite("Product Mode[" + AppName + "][" + IsProductMode + "]");
 
@@ -465,13 +469,11 @@ namespace Client
                 top = System.Configuration.ConfigurationSettings.AppSettings["topmost"].ToString();
                 string sNopop = System.Configuration.ConfigurationSettings.AppSettings["nopop"].ToString();
 
-                FtpHost = CommonDef.FTP_HOST;
                 tempFolder = CommonDef.FTP_LOCAL_DIR;
                 passwd = CommonDef.FTP_PASS;
                 FtpPort = CommonDef.FTP_PORT;
                 FtpUsername = CommonDef.FTP_USERID;
                 updaterDir = UpdateTargetFullPath; //System.Configuration.ConfigurationSettings.AppSettings["UpdaterDir"].ToString();
-                version = CommonDef.FTP_VERSION;
                 
                 if (sNopop.Equals("1"))
                 {
