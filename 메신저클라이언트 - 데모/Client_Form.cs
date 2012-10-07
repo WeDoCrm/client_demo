@@ -2113,7 +2113,9 @@ namespace Client
                         }
                     }
                     catch (ThreadAbortException e)
-                    { }
+                    {
+                        logWrite("Receive() 에러 : " + e.ToString());
+                    }
                     catch (SocketException e)
                     {
                         if (connected == true)
@@ -2121,11 +2123,11 @@ namespace Client
                     }
                 }
                 
-                if (connected == true)
-                    logWrite("##경고## : Receiver 가 중단되었습니다. ");
             }
             catch (Exception ex)
             {
+                if (connected == true)
+                    logWrite("##경고## : Receiver 가 중단되었습니다. ");
                 logWrite(ex.ToString());
             }
         }
@@ -3918,6 +3920,8 @@ namespace Client
         {
             try
             {
+                logWrite("Ringing : ani[" + ani + "]name[" + name + "]server_type[" + server_type + "]nopop[" + nopop + "]");
+
                 CustomerList[ani] = name;
                 if (popform != null)
                 {
@@ -3964,7 +3968,7 @@ namespace Client
 
         private void Answer(string ani, string calltype)
         {
-           
+            logWrite("Answer : ani[" + ani + "]calltype[" + calltype + "]nopop[" + nopop + "]nopop_outbound[" + nopop_outbound + "]");
             if (popform != null)
             {
                 t1.Stop();
@@ -3997,6 +4001,8 @@ namespace Client
                 }
                 catch (System.ObjectDisposedException dis)
                 {
+                    logWrite("에러발생:"+dis.ToString());
+
                     //getForegroundWindow();
                     cm.SetUserInfo(com_cd, this.myid, tbx_pass.Text, serverIP, socket_port_crm);
                     crm_main = new FRM_MAIN();

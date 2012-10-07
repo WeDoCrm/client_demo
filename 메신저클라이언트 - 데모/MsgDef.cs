@@ -37,10 +37,10 @@
         
         public const int SOCKET_PORT_CRM = 8886;
         public const string FTP_LOCAL_DIR = "c:\\temp";
-        public const string FTP_HOST = "ftp://114.202.2.33/Update/test/demo_client/";
+        public const string FTP_HOST = "ftp://114.202.2.33/Update/demo_client/";
         public const int FTP_PORT = 21;
         public const string FTP_USERID = "eclues";
         public const string FTP_PASS = "eclues!@";
-        public const string FTP_VERSION = "2.1.52";
+        public const string FTP_VERSION = "2.1.54";
     }
 }
